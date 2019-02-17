@@ -12,7 +12,7 @@ Need 2 args. Path to package and name record.
 
 ###### Example: ######
 * Run: ```gomigrate ./migrates create_user_table```
-* Generated file: ```./migrates/2019.02.12_07:22:59_create_table_user.go```
+* Generated file: ```./migrates/20190212_072259_create_table_user.go```
 * File body: 
 ```
 package migrates
@@ -73,6 +73,10 @@ import (
 
 func Migrate(db *sql.DB) {
     migration.MigrateTo("2019.02.12_07:22:59", db) // This timeString => "2019.02.12_07:22:59"
+    // or
+    migration.MigrateUp(db) // up max point
+    // or
+    migration.MigrateDown(db) // down to default DB
 }
 ```
 * ```gomigrate``` checks the position now and if it is not equal to ```"2019.02.12_07:22:59"``` migrates to it 

@@ -41,7 +41,25 @@ func MigrateTo(timeString string, db *sql.DB) (err error) {
 		err = down(timestampTo, currentTime)
 	}
 
+	if err != nil {
+		return
+	}
+
 	return save(db, timestampTo, currentTime)
+}
+
+func MigrateUp(db *sql.DB) (err error) {
+	if len(points) == 0 {
+		return fmt.Errorf("%v", "len points == 0")
+	}
+
+	points.Sort()
+
+	return MigrateTo(points[len(points) - 1].GetTimeString(), db)
+}
+
+func MigrateDown(db *sql.DB) (err error) {
+	return MigrateTo("default", db)
 }
 
 func up(to int64, from int64) (err error) {
@@ -80,7 +98,7 @@ func down(to int64, from int64) (err error) {
 			for a := i; a >= 0; a-- {
 				p := points[a]
 
-				if to > p.GetTimestamp() {
+				if to >= p.GetTimestamp() {
 					return
 				}
 

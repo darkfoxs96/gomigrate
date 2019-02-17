@@ -13,7 +13,7 @@ func GetTemplate(path, name string) (temp, absPath, fileName string) {
 	timestamp := strconv.Itoa(int(timeNow.Unix()))
 	timeString, timeLightString := getTime(timeNow)
 	structName := strings.ToUpper(name[:1])+name[1:]+"_"+timeLightString
-	fileName = timeString+"_"+name+".go"
+	fileName = timeLightString+"_"+name+".go"
 	absPath, packageName := getAbsPathAndPackage(path)
 
 	temp = strings.Replace(templateSource, "${packageName}", packageName, -1)
@@ -28,7 +28,7 @@ func GetTemplate(path, name string) (temp, absPath, fileName string) {
 func getAbsPathAndPackage(path string) (absPath, packageName string) {
 	var err error
 
-	if len(path) > 2 && path[len(path)-1:] == "/" {
+	if path[len(path)-1:] == "/" {
 		path = path[:len(path)-1]
 	}
 

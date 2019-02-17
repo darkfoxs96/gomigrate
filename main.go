@@ -38,5 +38,5 @@ func help() {
 	fmt.Println("Need 2 args. Path to package and name record.")
 	fmt.Println("Example:")
 	fmt.Println("gomigrate ./ init_db")
-	fmt.Println("Generated: ./2019.02.23_20:19:30_init_db.go")
+	fmt.Println("Generated: ./20190223_201930_init_db.go")
 }
