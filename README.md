@@ -10,7 +10,7 @@ Minimalist library for migration db
 * New point: ```gomigrate ./ init_db```   
 Need 2 args. Path to package and name record.   
 * Build to bin: ```gomigrate -build ./ GOOS=darwin GOARCH=amd64 -up postgres user=don password=sdef12 dbname=don host=0.0.0.0 port=5432 sslmode=disable```   
-Need min 6 args. Path to package, Systems params, -up or -down or 'data', Connect params.
+Need min 6 args. Path to migrates points, Systems params, -up or -down or 'data', Connect params.
 
 ###### Example create migrate point: ######
 * Run: ```gomigrate ./migrates create_user_table```
@@ -83,7 +83,7 @@ func Migrate(db *sql.DB) {
 ```
 * ```gomigrate``` checks the position now and if it is not equal to ```"20190212_072259"``` migrates to it 
 
-###### Example build to bin by migrate points: ######
+###### Example build to bin by migrates points: ######
 * Run: ```gomigrate -build ./migrates GOOS=windows GOARCH=amd64 -up postgres user=don password=sdef12 dbname=don host=0.0.0.0 port=5432 sslmode=disable```
 * Generated file: ```./migrates/20190223_201930_up/20190223_201930_up.exe```
 

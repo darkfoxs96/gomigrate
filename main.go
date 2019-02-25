@@ -22,7 +22,7 @@ func main() {
 			return
 		} else if arg == "-build" {
 			if len(args) < 6 {
-				fmt.Println("Need min 6 args. Path to package, Systems params, -up or -down or 'data', Connect params.")
+				fmt.Println("Need min 6 args. Path to migrates points, Systems params, -up or -down or 'data', Connect params.")
 				fmt.Println("gomigrate -help")
 			}
 
@@ -58,7 +58,7 @@ func help() {
 	fmt.Println("////////////////////")
 
 	fmt.Println("build binary migration")
-	fmt.Println("Need min 6 args. Path to package, Systems params, -up or -down or 'data', Connect params.")
+	fmt.Println("Need min 6 args. Path to migrates points, Systems params, -up or -down or 'data', Connect params.")
 	fmt.Println("Example:")
 	fmt.Println("gomigrate -build ./ GOOS=darwin GOARCH=amd64 -up postgres user=don password=sdef12 dbname=don host=0.0.0.0 port=5432 sslmode=disable")
 	fmt.Println("Generated: ./20190223_201930_up")
