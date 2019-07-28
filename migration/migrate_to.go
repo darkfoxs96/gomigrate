@@ -5,15 +5,22 @@ import (
 	"fmt"
 )
 
-func MigrateTo(timeString string, db *sql.DB) (err error) {
+func MigrateTo(timeString string, db *sql.DB, key string) (err error) {
 	if len(points) == 0 {
 		return fmt.Errorf("%v", "len points == 0")
 	}
 
+	tx, err := db.Begin()
+	if err != nil {
+		return
+	}
+	defer tx.Rollback()
+
 	var timestampTo int64
 
 	for _, point := range points {
-		point.SetDB(db)
+		point.SetDB(tx)
+		point.SetKey(key)
 
 		if point.GetTimeString() == timeString {
 			timestampTo = point.GetTimestamp()
@@ -45,21 +52,27 @@ func MigrateTo(timeString string, db *sql.DB) (err error) {
 		return
 	}
 
-	return save(db, timestampTo, currentTime)
+	err = save(db, timestampTo, currentTime)
+	if err != nil {
+		return
+	}
+
+	_ = tx.Commit()
+	return
 }
 
-func MigrateUp(db *sql.DB) (err error) {
+func MigrateUp(db *sql.DB, key string) (err error) {
 	if len(points) == 0 {
 		return fmt.Errorf("%v", "len points == 0")
 	}
 
 	points.Sort()
 
-	return MigrateTo(points[len(points) - 1].GetTimeString(), db)
+	return MigrateTo(points[len(points)-1].GetTimeString(), db, key)
 }
 
-func MigrateDown(db *sql.DB) (err error) {
-	return MigrateTo("default", db)
+func MigrateDown(db *sql.DB, key string) (err error) {
+	return MigrateTo("default", db, key)
 }
 
 func up(to int64, from int64) (err error) {
@@ -70,7 +83,7 @@ func up(to int64, from int64) (err error) {
 	} else {
 		for i, point := range points {
 			if point.GetTimestamp() == from {
-				startI = i+1
+				startI = i + 1
 				break
 			}
 		}

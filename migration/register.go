@@ -6,15 +6,17 @@ import (
 )
 
 type Point struct {
-	DB 		   *sql.DB
+	DB         *sql.Tx
 	TimeString string
 	Timestamp  int64
+	Key        string
 }
 
 type IPoint interface {
 	Up() error
 	Down() error
-	SetDB(db *sql.DB)
+	SetDB(db *sql.Tx)
+	SetKey(key string)
 	SetTime(timestamp int64, timeString string)
 	GetTimeString() string
 	GetTimestamp() int64
@@ -28,8 +30,12 @@ func (m *Point) Down() (err error) {
 	return
 }
 
-func (m *Point) SetDB(db *sql.DB) {
+func (m *Point) SetDB(db *sql.Tx) {
 	m.DB = db
+}
+
+func (m *Point) SetKey(key string) {
+	m.Key = key
 }
 
 func (m *Point) SetTime(timestamp int64, timeString string) {
