@@ -32,12 +32,12 @@ func MigrateTo(timeString string, db *sql.DB, key string) (err error) {
 		return fmt.Errorf("%v", "not found point with timeString:"+timeString)
 	}
 
-	err = migrateFromV1(tx, db)
+	isMigrated, err := migrateFromV1(tx, db)
 	if err != nil {
 		return
 	}
 
-	currentTime, err := getCurrentTimestamps(tx, db)
+	currentTime, err := getCurrentTimestamps(tx, db, isMigrated)
 	if err != nil {
 		return
 	}
@@ -135,11 +135,11 @@ func down(to int64, from int64, db *sql.Tx) (err error) {
 	return
 }
 
-func migrateFromV1(tx *sql.Tx, db *sql.DB) (err error) {
+func migrateFromV1(tx *sql.Tx, db *sql.DB) (isMigrated bool, err error) {
 	var timestamp int64
 	row, err := db.Query(`SELECT version FROM migrate_schema`)
 	if err != nil {
-		return nil
+		return false, nil
 	}
 	defer row.Close()
 	for row.Next() {
@@ -169,11 +169,18 @@ func migrateFromV1(tx *sql.Tx, db *sql.DB) (err error) {
 		}
 	}
 
+	isMigrated = true
 	return
 }
 
-func getCurrentTimestamps(tx *sql.Tx, db *sql.DB) (timestampMax int64, err error) {
-	row, err := db.Query(`SELECT id FROM migrate_schema_v2`)
+func getCurrentTimestamps(tx *sql.Tx, db *sql.DB, getFromTx bool) (timestampMax int64, err error) {
+	var row *sql.Rows
+
+	if getFromTx {
+		row, err = tx.Query(`SELECT id FROM migrate_schema_v2`)
+	} else {
+		row, err = db.Query(`SELECT id FROM migrate_schema_v2`)
+	}
 	if err != nil {
 		_, err = tx.Exec(`CREATE TABLE migrate_schema_v2(id int)`)
 		return
