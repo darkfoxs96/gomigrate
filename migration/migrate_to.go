@@ -31,28 +31,23 @@ func MigrateTo(timeString string, db *sql.DB, key string) (err error) {
 		return fmt.Errorf("%v", "not found point with timeString:"+timeString)
 	}
 
-	currentTime, err := getCurrentTimestamp(db)
+	err = migrateFromV1(tx)
 	if err != nil {
 		return
 	}
 
-	if timestampTo == currentTime {
+	currentTime, err := getCurrentTimestamps(tx)
+	if err != nil {
 		return
 	}
 
 	points.Sort()
 
-	if timestampTo > currentTime {
-		err = up(timestampTo, currentTime)
+	if timestampTo >= currentTime {
+		err = up(timestampTo, tx)
 	} else if timestampTo < currentTime {
-		err = down(timestampTo, currentTime)
+		err = down(timestampTo, currentTime, tx)
 	}
-
-	if err != nil {
-		return
-	}
-
-	err = save(db, timestampTo, currentTime)
 	if err != nil {
 		return
 	}
@@ -75,28 +70,20 @@ func MigrateDown(db *sql.DB, key string) (err error) {
 	return MigrateTo("default", db, key)
 }
 
-func up(to int64, from int64) (err error) {
-	var startI int
+func up(to int64, db *sql.Tx) (err error) {
+	for _, p := range points {
+		pointTimestamp := p.GetTimestamp()
 
-	if from == 0 {
-		startI = 0
-	} else {
-		for i, point := range points {
-			if point.GetTimestamp() == from {
-				startI = i + 1
-				break
-			}
-		}
-	}
-
-	for a := startI; a < len(points); a++ {
-		p := points[a]
-
-		if to < p.GetTimestamp() {
+		if to < pointTimestamp || currentMigratedMap[pointTimestamp] {
 			return
 		}
 
 		err = p.Up()
+		if err != nil {
+			return
+		}
+
+		err = add(db, pointTimestamp)
 		if err != nil {
 			return
 		}
@@ -105,17 +92,23 @@ func up(to int64, from int64) (err error) {
 	return
 }
 
-func down(to int64, from int64) (err error) {
+func down(to int64, from int64, db *sql.Tx) (err error) {
 	for i, point := range points {
 		if point.GetTimestamp() == from {
 			for a := i; a >= 0; a-- {
 				p := points[a]
+				pointTimestamp := p.GetTimestamp()
 
-				if to >= p.GetTimestamp() {
+				if to >= p.GetTimestamp() || !currentMigratedMap[pointTimestamp] {
 					return
 				}
 
 				err = p.Down()
+				if err != nil {
+					return
+				}
+
+				err = remove(db, pointTimestamp)
 				if err != nil {
 					return
 				}
@@ -128,35 +121,58 @@ func down(to int64, from int64) (err error) {
 	return
 }
 
-func getCurrentTimestamp(db *sql.DB) (timestamp int64, err error) {
-	row, err := db.Query(`SELECT version FROM migrate_schema`)
+func migrateFromV1(db *sql.Tx) (err error) {
+	var timestamp int64
+	err = db.QueryRow(`SELECT version FROM migrate_schema`).Scan(&timestamp)
 	if err != nil {
-		timestamp = 0
+		return nil
+	}
 
-		_, err = db.Exec(`CREATE TABLE migrate_schema(version int)`)
-		if err != nil {
-			return
-		}
+	_, err = db.Exec(`DROP TABLE migrate_schema`)
+	if err != nil {
+		return
+	}
 
-		_, err = db.Exec(`INSERT INTO migrate_schema (version) VALUES (0);`)
-		if err != nil {
-			return
-		}
-	} else {
-		defer row.Close()
-
-		for row.Next() {
-			err = row.Scan(&timestamp)
-			if err != nil {
-				return
-			}
+	for _, point := range points {
+		if point.GetTimestamp() <= timestamp {
+			db.Exec(`INSERT INTO migrate_schema_v2 (id) VALUES ($1)`, point.GetTimestamp())
 		}
 	}
 
 	return
 }
 
-func save(db *sql.DB, to, from int64) (err error) {
-	_, err = db.Exec(`UPDATE migrate_schema SET version = $1 WHERE version = $2;`, to, from)
+func getCurrentTimestamps(db *sql.Tx) (timestampMax int64, err error) {
+	row, err := db.Query(`SELECT id FROM migrate_schema_v2`)
+	if err != nil {
+		_, err = db.Exec(`CREATE TABLE migrate_schema_v2(id int)`)
+		return
+	}
+	defer row.Close()
+
+	for row.Next() {
+		var timestamp int64
+		err = row.Scan(&timestamp)
+		if err != nil {
+			return
+		}
+
+		if timestamp > timestampMax {
+			timestampMax = timestamp
+		}
+
+		currentMigratedMap[timestamp] = true
+	}
+
+	return
+}
+
+func add(db *sql.Tx, id int64) (err error) {
+	_, err = db.Exec(`INSERT INTO migrate_schema_v2 (id) VALUES ($1)`, id)
+	return err
+}
+
+func remove(db *sql.Tx, id int64) (err error) {
+	_, err = db.Exec(`DELETE migrate_schema_v2 WHERE id=$1`, id)
 	return err
 }

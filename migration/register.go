@@ -60,7 +60,10 @@ func (p PointsArray) Len() int           { return len(p) }
 func (p PointsArray) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p PointsArray) Less(i, j int) bool { return p[i].GetTimestamp() < p[j].GetTimestamp() }
 
-var points = make(PointsArray, 0)
+var (
+	points             = make(PointsArray, 0)
+	currentMigratedMap = map[int64]bool{}
+)
 
 func Register(timestamp int64, timeString string, point IPoint) {
 	point.SetTime(timestamp, timeString)
