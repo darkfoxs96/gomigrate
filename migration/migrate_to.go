@@ -76,7 +76,7 @@ func removePointsWithBadKeys(key string) {
 	newPoints := PointsArray{}
 
 	for _, point := range points {
-		if point.GetKey() == "" || point.GetKey() == key {
+		if key == "" || point.GetKey() == key {
 			newPoints = append(newPoints, point)
 		}
 	}
