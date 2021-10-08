@@ -133,9 +133,17 @@ func migrateFromV1(db *sql.Tx) (err error) {
 		return
 	}
 
+	_, err = db.Exec(`CREATE TABLE migrate_schema_v2(id int)`)
+	if err != nil {
+		return
+	}
+
 	for _, point := range points {
 		if point.GetTimestamp() <= timestamp {
-			db.Exec(`INSERT INTO migrate_schema_v2 (id) VALUES ($1)`, point.GetTimestamp())
+			_, err = db.Exec(`INSERT INTO migrate_schema_v2 (id) VALUES ($1)`, point.GetTimestamp())
+			if err != nil {
+				return
+			}
 		}
 	}
 
