@@ -89,7 +89,7 @@ func up(to int64, db *sql.Tx) (err error) {
 		pointTimestamp := p.GetTimestamp()
 
 		if to < pointTimestamp || currentMigratedMap[pointTimestamp] {
-			return
+			continue
 		}
 
 		err = p.Up()
@@ -114,7 +114,7 @@ func down(to int64, from int64, db *sql.Tx) (err error) {
 				pointTimestamp := p.GetTimestamp()
 
 				if to >= p.GetTimestamp() || !currentMigratedMap[pointTimestamp] {
-					return
+					continue
 				}
 
 				err = p.Down()
