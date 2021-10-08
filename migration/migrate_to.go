@@ -32,12 +32,12 @@ func MigrateTo(timeString string, db *sql.DB, key string) (err error) {
 		return fmt.Errorf("%v", "not found point with timeString:"+timeString)
 	}
 
-	err = migrateFromV1(tx)
+	err = migrateFromV1(tx, db)
 	if err != nil {
 		return
 	}
 
-	currentTime, err := getCurrentTimestamps(tx)
+	currentTime, err := getCurrentTimestamps(tx, db)
 	if err != nil {
 		return
 	}
@@ -135,32 +135,34 @@ func down(to int64, from int64, db *sql.Tx) (err error) {
 	return
 }
 
-func migrateFromV1(db *sql.Tx) (err error) {
+func migrateFromV1(tx *sql.Tx, db *sql.DB) (err error) {
 	var timestamp int64
 	row, err := db.Query(`SELECT version FROM migrate_schema`)
 	if err != nil {
 		return nil
 	}
+	defer row.Close()
 	for row.Next() {
 		err = row.Scan(&timestamp)
 		if err != nil {
 			return
 		}
 	}
+	_ = row.Close()
 
-	_, err = db.Exec(`DROP TABLE migrate_schema`)
+	_, err = tx.Exec(`DROP TABLE migrate_schema`)
 	if err != nil {
 		return
 	}
 
-	_, err = db.Exec(`CREATE TABLE migrate_schema_v2(id int)`)
+	_, err = tx.Exec(`CREATE TABLE migrate_schema_v2(id int)`)
 	if err != nil {
 		return
 	}
 
 	for _, point := range points {
 		if point.GetTimestamp() <= timestamp {
-			_, err = db.Exec(`INSERT INTO migrate_schema_v2 (id) VALUES ($1)`, point.GetTimestamp())
+			_, err = tx.Exec(`INSERT INTO migrate_schema_v2 (id) VALUES ($1)`, point.GetTimestamp())
 			if err != nil {
 				return
 			}
@@ -170,10 +172,10 @@ func migrateFromV1(db *sql.Tx) (err error) {
 	return
 }
 
-func getCurrentTimestamps(db *sql.Tx) (timestampMax int64, err error) {
+func getCurrentTimestamps(tx *sql.Tx, db *sql.DB) (timestampMax int64, err error) {
 	row, err := db.Query(`SELECT id FROM migrate_schema_v2`)
 	if err != nil {
-		_, err = db.Exec(`CREATE TABLE migrate_schema_v2(id int)`)
+		_, err = tx.Exec(`CREATE TABLE migrate_schema_v2(id int)`)
 		return
 	}
 	defer row.Close()
