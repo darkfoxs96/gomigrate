@@ -74,11 +74,11 @@ import (
 )
 
 func Migrate(db *sql.DB) {
-    migration.MigrateTo("20190212_072259", db) // This timeString => "20190212_072259"
+    migration.MigrateTo("20190212_072259", db, "") // This timeString => "20190212_072259"
     // or
-    migration.MigrateUp(db) // up max point
+    migration.MigrateUp(db, "") // up max point
     // or
-    migration.MigrateDown(db) // down to default DB
+    migration.MigrateDown(db, "") // down to default DB
 }
 ```
 * ```gomigrate``` checks the position now and if it is not equal to ```"20190212_072259"``` migrates to it 
