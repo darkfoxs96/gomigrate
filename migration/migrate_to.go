@@ -9,6 +9,7 @@ func MigrateTo(timeString string, db *sql.DB, key string) (err error) {
 	if len(points) == 0 {
 		return fmt.Errorf("%v", "len points == 0")
 	}
+	removePointsWithBadKeys(key)
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -61,6 +62,7 @@ func MigrateUp(db *sql.DB, key string) (err error) {
 		return fmt.Errorf("%v", "len points == 0")
 	}
 
+	removePointsWithBadKeys(key)
 	points.Sort()
 
 	return MigrateTo(points[len(points)-1].GetTimeString(), db, key)
@@ -68,6 +70,18 @@ func MigrateUp(db *sql.DB, key string) (err error) {
 
 func MigrateDown(db *sql.DB, key string) (err error) {
 	return MigrateTo("default", db, key)
+}
+
+func removePointsWithBadKeys(key string) {
+	newPoints := PointsArray{}
+
+	for _, point := range points {
+		if point.GetKey() == "" || point.GetKey() == key {
+			newPoints = append(newPoints, point)
+		}
+	}
+
+	points = newPoints
 }
 
 func up(to int64, db *sql.Tx) (err error) {
@@ -123,9 +137,15 @@ func down(to int64, from int64, db *sql.Tx) (err error) {
 
 func migrateFromV1(db *sql.Tx) (err error) {
 	var timestamp int64
-	err = db.QueryRow(`SELECT version FROM migrate_schema`).Scan(&timestamp)
+	row, err := db.Query(`SELECT version FROM migrate_schema`)
 	if err != nil {
 		return nil
+	}
+	for row.Next() {
+		err = row.Scan(&timestamp)
+		if err != nil {
+			return
+		}
 	}
 
 	_, err = db.Exec(`DROP TABLE migrate_schema`)

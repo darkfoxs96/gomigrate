@@ -17,6 +17,7 @@ type IPoint interface {
 	Down() error
 	SetDB(db *sql.Tx)
 	SetKey(key string)
+	GetKey() string
 	SetTime(timestamp int64, timeString string)
 	GetTimeString() string
 	GetTimestamp() int64
@@ -36,6 +37,10 @@ func (m *Point) SetDB(db *sql.Tx) {
 
 func (m *Point) SetKey(key string) {
 	m.Key = key
+}
+
+func (m *Point) GetKey() string {
+	return m.Key
 }
 
 func (m *Point) SetTime(timestamp int64, timeString string) {
